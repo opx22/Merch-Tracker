@@ -7,7 +7,7 @@ import EventDashboard from './components/EventDashboard';
 import CatalogManager from './components/CatalogManager';
 import OrdersManager from './components/OrdersManager';
 import StatusTracker from './components/StatusTracker';
-import { INITIAL_EVENTS, INITIAL_ORDERS } from './data/demoData';
+
 import { calculateEventSummary } from './utils/calculations';
 import { getSupabaseClient } from './lib/supabaseClient';
 import { fetchFromSupabase, executeMigration } from './utils/migrateToSupabase';
@@ -21,17 +21,17 @@ export default function App() {
     return name.replace(/\s*\(\s*Host\s*(GO)?\s*\)/gi, '').trim();
   };
 
-  // Load initial data from localStorage or fallback to demoData — SSR safe
+  // Load initial data from localStorage — SSR safe, Supabase is source of truth
   const [events, setEvents] = useState(() => {
-    if (typeof window === 'undefined') return INITIAL_EVENTS;
+    if (typeof window === 'undefined') return [];
     const saved = localStorage.getItem('merch_tracker_events_v1');
-    return saved ? JSON.parse(saved) : INITIAL_EVENTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [ordersMap, setOrdersMap] = useState(() => {
     if (typeof window === 'undefined') return {};
     const saved = localStorage.getItem('merch_tracker_orders_v1');
-    const rawMap = saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    const rawMap = saved ? JSON.parse(saved) : {};
     const cleanMap = {};
     Object.keys(rawMap).forEach((eventId) => {
       cleanMap[eventId] = (rawMap[eventId] || []).map((ord) => {
