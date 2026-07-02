@@ -35,6 +35,8 @@ export default function OrdersManager({
   const [expandedOrders, setExpandedOrders] = useState({});
   const [addingCatalogToOrder, setAddingCatalogToOrder] = useState(null);
   const [editingMetadataOrder, setEditingMetadataOrder] = useState(null);
+  const [showSgd, setShowSgd] = useState(true);
+  const [showRawBenefit, setShowRawBenefit] = useState(true);
 
   // Totals calculated from summaryData or processedOrders
   const totalSgd = summaryData.totalSgdSpend || processedOrders.reduce((sum, o) => sum + Number(o.orderSgdSpend || 0), 0);
@@ -245,6 +247,34 @@ export default function OrdersManager({
 
   return (
     <div className="max-w-md mx-auto px-4 py-4 space-y-4 pb-28">
+      {/* View toggles — global */}
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={() => setShowRawBenefit((v) => !v)}
+          title={showRawBenefit ? 'Hide raw benefit breakdown' : 'Show raw benefit breakdown'}
+          className={`flex items-center gap-1.5 text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition active:scale-95 ${
+            showRawBenefit
+              ? 'bg-[#b45309] text-white border-[#b45309] shadow-sm shadow-[#b45309]/20'
+              : 'bg-[#f4eee2] text-[#5c5549] border-[#ded5c2] hover:bg-[#ede5d6]'
+          }`}
+        >
+          <Sparkles className="w-3 h-3" />
+          <span>{showRawBenefit ? 'Benefit: On' : 'Benefit: Off'}</span>
+        </button>
+        <button
+          onClick={() => setShowSgd((v) => !v)}
+          title={showSgd ? 'Hide SGD amounts' : 'Show SGD amounts'}
+          className={`flex items-center gap-1.5 text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition active:scale-95 ${
+            showSgd
+              ? 'bg-[#c05c3b] text-white border-[#c05c3b] shadow-sm shadow-[#c05c3b]/20'
+              : 'bg-[#f4eee2] text-[#5c5549] border-[#ded5c2] hover:bg-[#ede5d6]'
+          }`}
+        >
+          <DollarSign className="w-3 h-3" />
+          <span>{showSgd ? 'SGD: On' : 'SGD: Off'}</span>
+        </button>
+      </div>
+
       {/* Event Purchasing Target & Master Summary Box at Top */}
       <div className="glass-card rounded-3xl p-4 border border-[#e2d6c1] shadow-md bg-gradient-to-br from-[#fefcf8] to-[#f8f3ea] space-y-3.5">
         <div className="flex items-center gap-2 border-b border-[#eae3d2] pb-2.5">
@@ -264,10 +294,12 @@ export default function OrdersManager({
               <DollarSign className="w-3.5 h-3.5 text-[#c05c3b]" />
               <span>Total Summed Spend</span>
             </span>
-            <div className="text-lg font-black text-[#23201c] font-mono mt-0.5">
-              ${Number(totalSgd).toFixed(2)} SGD
-            </div>
-            <span className="text-[11px] font-bold text-[#8c8273] block mt-0.5">
+            {showSgd && (
+              <div className="text-lg font-black text-[#23201c] font-mono mt-0.5">
+                ${Number(totalSgd).toFixed(2)} SGD
+              </div>
+            )}
+            <span className={`text-[11px] font-bold text-[#8c8273] block ${showSgd ? 'mt-0.5' : 'mt-0.5 text-base font-black text-[#23201c] font-mono'}`}>
               {formatCurrency(totalLocal, currencyCode)}
             </span>
           </div>
@@ -279,7 +311,7 @@ export default function OrdersManager({
             </span>
             <div className="text-lg font-black text-[#b45309] font-mono mt-0.5 flex items-center gap-1">
               <Sparkles className="w-4 h-4 text-[#d97706]" />
-              <span>{Number(totalEffectivePCs || 0).toFixed(1)} PCs</span>
+              <span>{Math.floor(Number(totalEffectivePCs || 0))} PCs</span>
             </div>
             <span className="text-[11px] font-semibold text-[#8c8273] block mt-0.5">
               Across {totalItemsCount} items
@@ -305,9 +337,11 @@ export default function OrdersManager({
                     </span>
                   </div>
                   <div className="text-right shrink-0 font-mono">
-                    <span className="font-bold text-[#c05c3b] block">
-                      ${Number(data.totalSgd).toFixed(2)} SGD
-                    </span>
+                    {showSgd && (
+                      <span className="font-bold text-[#c05c3b] block">
+                        ${Number(data.totalSgd).toFixed(2)} SGD
+                      </span>
+                    )}
                     <span className="text-[10px] text-[#8c8273] block">
                       {formatCurrency(data.totalLocal, currencyCode)}
                     </span>
@@ -320,7 +354,7 @@ export default function OrdersManager({
           <div className="pt-2 border-t border-[#eae3d2] flex items-center justify-between text-xs font-mono font-black">
             <span className="text-[#5c5549] font-sans">Summed Total:</span>
             <span className="text-[#c05c3b]">
-              ${Number(totalSgd).toFixed(2)} SGD ({formatCurrency(totalLocal, currencyCode)})
+              {showSgd ? `$${Number(totalSgd).toFixed(2)} SGD (${formatCurrency(totalLocal, currencyCode)})` : formatCurrency(totalLocal, currencyCode)}
             </span>
           </div>
         </div>
@@ -405,10 +439,14 @@ export default function OrdersManager({
                       <span className="font-mono font-extrabold text-[#3d3730]">
                         {formatCurrency(ord.orderLocalSpend, currencyCode)}
                       </span>
-                      <span className="text-[#a89f91]">•</span>
-                      <span className="font-mono font-black text-[#c05c3b]">
-                        ${ord.orderSgdSpend} SGD
-                      </span>
+                      {showSgd && (
+                        <>
+                          <span className="text-[#a89f91]">•</span>
+                          <span className="font-mono font-black text-[#c05c3b]">
+                            ${ord.orderSgdSpend} SGD
+                          </span>
+                        </>
+                      )}
                       <span className="text-[#716a5d] text-[11px]">({ord.totalItemsCount} items)</span>
                     </div>
 
@@ -430,7 +468,7 @@ export default function OrdersManager({
                       <div className="text-[10px] uppercase font-bold text-[#8c8273]">Benefit</div>
                       <div className="text-sm font-black text-[#b45309] flex items-center justify-end gap-1 font-mono">
                         <Sparkles className="w-3.5 h-3.5 text-[#d97706]" />
-                        <span>{Number(ord.effectiveBenefit || 0).toFixed(1)} PC</span>
+                        <span>{Math.floor(Number(ord.effectiveBenefit || 0))} PC</span>
                       </div>
                     </div>
 
@@ -461,28 +499,30 @@ export default function OrdersManager({
                 </div>
 
                 {/* Calculation Breakdown Sub-bar */}
-                <div className="px-3.5 py-1.5 bg-[#f8f5ed] border-b border-[#eae3d2] flex items-center justify-between text-[11px]">
-                  <div className="text-[#5c5549] flex items-center gap-1">
-                    <span>Raw Benefit:</span>
-                    <span className="font-mono font-bold text-[#23201c]">
-                      {ord.isMyOrder && ord.pooledRemaindersAdded > 0
-                        ? `${Number(ord.combinedRawBenefit || 0).toFixed(1)} (${Number(ord.rawBenefit || 0).toFixed(1)} own + ${Number(ord.pooledRemaindersAdded || 0).toFixed(1)} pooled)`
-                        : Number(ord.rawBenefit || 0).toFixed(1)}
-                    </span>
-                  </div>
-                  <div>
-                    {ord.isMyOrder ? (
-                      <span className="text-[#059669] font-bold flex items-center gap-1 font-mono">
-                        <Sparkles className="w-3 h-3" />
-                        <span>+{Number(ord.pooledRemaindersAdded || 0).toFixed(1)} from remainders</span>
+                {showRawBenefit && (
+                  <div className="px-3.5 py-1.5 bg-[#f8f5ed] border-b border-[#eae3d2] flex items-center justify-between text-[11px]">
+                    <div className="text-[#5c5549] flex items-center gap-1">
+                      <span>Raw Benefit:</span>
+                      <span className="font-mono font-bold text-[#23201c]">
+                        {ord.isMyOrder && ord.pooledRemaindersAdded > 0
+                          ? `${Number(ord.combinedRawBenefit || 0).toFixed(1)} (${Number(ord.rawBenefit || 0).toFixed(1)} own + ${Number(ord.pooledRemaindersAdded || 0).toFixed(1)} pooled)`
+                          : Number(ord.rawBenefit || 0).toFixed(1)}
                       </span>
-                    ) : (
-                      <span className="text-[#b45309] font-semibold">
-                        Remainder contribution: <strong className="font-mono">.{Math.round(ord.remainder * 100).toString().padStart(2, '0')}</strong>
-                      </span>
-                    )}
+                    </div>
+                    <div>
+                      {ord.isMyOrder ? (
+                        <span className="text-[#059669] font-bold flex items-center gap-1 font-mono">
+                          <Sparkles className="w-3 h-3" />
+                          <span>+{Number(ord.pooledRemaindersAdded || 0).toFixed(1)} from remainders</span>
+                        </span>
+                      ) : (
+                        <span className="text-[#b45309] font-semibold">
+                          Remainder contribution: <strong className="font-mono">.{Math.round(ord.remainder * 100).toString().padStart(2, '00')}</strong>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Expanded Ordered Items List */}
                 {isExpanded && (

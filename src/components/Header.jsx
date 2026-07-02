@@ -9,8 +9,6 @@ export default function Header({
   onOpenNewEventModal,
   activeTab,
   setActiveTab,
-  isSupabaseConnected,
-  isSyncing,
 }) {
   const activeEvent = events.find((e) => e.id === activeEventId) || events[0];
 
@@ -20,16 +18,8 @@ export default function Header({
         {/* Brand & Event Selector Dropdown */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#c05c3b] mb-0.5">
-            <div className="flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-[#d97706] animate-pulse" />
-              <span>Merch Order</span>
-            </div>
-            {isSupabaseConnected && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ecfdf5] border border-[#a7f3d0] text-[9px] font-extrabold text-[#047857]">
-                <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-[#f59e0b] animate-ping' : 'bg-[#10b981]'}`} />
-                <span>{isSyncing ? 'Syncing...' : 'Supabase Live'}</span>
-              </span>
-            )}
+            <Sparkles className="w-3.5 h-3.5 text-[#d97706] animate-pulse" />
+            <span>Merch Order</span>
           </div>
 
           <div className="relative group inline-block max-w-full">
