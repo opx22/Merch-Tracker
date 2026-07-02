@@ -36,3 +36,4 @@ dist-ssr
 # Next.js build output and cache (never commit these)
 .next
 out/
+ 
