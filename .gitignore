@@ -27,5 +27,11 @@ dist-ssr
 .env
 .env.*
 !.env.example
-.vercel
 .env*
+
+# Vercel
+.vercel
+
+# Next.js build output and cache (never commit these)
+.next/
+out/
