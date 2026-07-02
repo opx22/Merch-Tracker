@@ -4,15 +4,8 @@ import { createClient } from '@supabase/supabase-js';
  * Retrieves Supabase URL and Anon Key from environment variables or localStorage.
  */
 export const getSupabaseConfig = () => {
-  const envUrl =
-    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
-    (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
-    (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : undefined);
-
-  const envKey =
-    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-    (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY) ||
-    (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined);
+  const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const storedUrl = typeof window !== 'undefined' ? localStorage.getItem('merch_tracker_supabase_url') : null;
   const storedKey = typeof window !== 'undefined' ? localStorage.getItem('merch_tracker_supabase_key') : null;
