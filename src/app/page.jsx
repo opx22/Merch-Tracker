@@ -1,7 +1,12 @@
 "use client";
 
 import App from '../App';
+import LoginGate from '../components/LoginGate';
 
 export default function Page() {
-  return <App />;
+  return (
+    <LoginGate>
+      <App />
+    </LoginGate>
+  );
 }
