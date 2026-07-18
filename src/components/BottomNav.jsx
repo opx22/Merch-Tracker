@@ -4,6 +4,11 @@ import { ShoppingBag, Users, Calendar, ClipboardCheck } from 'lucide-react';
 export default function BottomNav({ activeTab, setActiveTab, ordersCount, catalogCount }) {
   const navItems = [
     {
+      id: 'status',
+      label: 'Status',
+      icon: ClipboardCheck,
+    },
+    {
       id: 'orders',
       label: 'Orders',
       icon: Users,
@@ -19,11 +24,6 @@ export default function BottomNav({ activeTab, setActiveTab, ordersCount, catalo
       id: 'events',
       label: 'Events',
       icon: Calendar,
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      icon: ClipboardCheck,
     },
   ];
 

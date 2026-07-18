@@ -66,7 +66,7 @@ export default function App() {
     return events[0]?.id || '';
   });
 
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'catalog' | 'summary' | 'events'
+  const [activeTab, setActiveTab] = useState('status'); // 'status' | 'orders' | 'catalog' | 'events'
   const [showNewEventModalFromHeader, setShowNewEventModalFromHeader] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
