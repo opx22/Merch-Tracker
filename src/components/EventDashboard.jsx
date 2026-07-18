@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Edit2, Trash2, Check, Globe, Sparkles, RefreshCw, ArrowRight } from 'lucide-react';
 import { fetchLiveExchangeRate, formatCurrency } from '../utils/calculations';
 
@@ -13,6 +13,7 @@ const SUPPORTED_CURRENCIES = [
   { code: 'PHP', name: 'Philippine Peso' },
   { code: 'IDR', name: 'Indonesian Rupiah' },
   { code: 'THB', name: 'Thai Baht' },
+  { code: 'MYR', name: 'Malaysian Ringgit' }
 ];
 
 export default function EventDashboard({
@@ -22,6 +23,8 @@ export default function EventDashboard({
   onCreateEvent,
   onUpdateEvent,
   onDeleteEvent,
+  showCreateModalFromHeader,
+  onCloseCreateModalFromHeader,
 }) {
   const activeEvent = events.find((e) => e.id === activeEventId) || events[0];
   const [isEditing, setIsEditing] = useState(false);
@@ -34,6 +37,9 @@ export default function EventDashboard({
     currencyCode: 'KRW',
     exchangeRate: 0.00098,
     benefitThreshold: 50000,
+    hasBenefits: true,
+    era: '',
+    member: '',
   });
 
   const handleStartCreate = () => {
@@ -42,10 +48,20 @@ export default function EventDashboard({
       currencyCode: 'KRW',
       exchangeRate: 0.00098,
       benefitThreshold: 50000,
+      hasBenefits: true,
+      era: '',
+      member: '',
     });
     setRateStatus('');
     setShowCreateModal(true);
   };
+
+  useEffect(() => {
+    if (showCreateModalFromHeader) {
+      handleStartCreate();
+      if (onCloseCreateModalFromHeader) onCloseCreateModalFromHeader();
+    }
+  }, [showCreateModalFromHeader]);
 
   const handleStartEdit = (evt) => {
     setFormData({
@@ -53,6 +69,9 @@ export default function EventDashboard({
       currencyCode: evt.currencyCode || 'KRW',
       exchangeRate: evt.exchangeRate,
       benefitThreshold: evt.benefitThreshold || 50000,
+      hasBenefits: evt.benefitThreshold > 0,
+      era: evt.era || '',
+      member: evt.member || '',
     });
     setRateStatus('');
     setIsEditing(true);
@@ -99,10 +118,12 @@ export default function EventDashboard({
     if (!activeEvent) return;
     onUpdateEvent(activeEvent.id, {
       ...activeEvent,
-      name: formData.name,
+      name: formData.name.trim(),
       currencyCode: formData.currencyCode,
       exchangeRate: Number(formData.exchangeRate),
-      benefitThreshold: Number(formData.benefitThreshold),
+      benefitThreshold: formData.hasBenefits ? Number(formData.benefitThreshold) : 0,
+      era: formData.era.trim(),
+      member: formData.member.trim(),
     });
     setIsEditing(false);
   };
@@ -115,8 +136,10 @@ export default function EventDashboard({
       name: formData.name.trim(),
       currencyCode: formData.currencyCode || 'LOCAL',
       exchangeRate: Number(formData.exchangeRate || 1),
-      benefitThreshold: Number(formData.benefitThreshold || 50000),
+      benefitThreshold: formData.hasBenefits ? Number(formData.benefitThreshold || 50000) : 0,
       catalog: [],
+      era: (formData.era || '').trim(),
+      member: (formData.member || '').trim(),
     };
     onCreateEvent(newEvt);
     setShowCreateModal(false);
@@ -190,8 +213,14 @@ export default function EventDashboard({
                 <div className="bg-[#fcfaf6] p-2.5 rounded-xl border border-[#e6decb] shadow-xs">
                   <span className="text-[10px] text-[#8c8273] uppercase font-bold block">Benefit Threshold</span>
                   <div className="text-sm font-extrabold text-[#b45309] flex items-center gap-1 mt-0.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Every {formatCurrency(activeEvent.benefitThreshold, activeEvent.currencyCode)}</span>
+                    {activeEvent.benefitThreshold > 0 ? (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Every {formatCurrency(activeEvent.benefitThreshold, activeEvent.currencyCode)}</span>
+                      </>
+                    ) : (
+                      <span className="text-[#a89f91]">No Benefits</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -219,6 +248,27 @@ export default function EventDashboard({
                   required
                   className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] focus:outline-none focus:border-[#c05c3b] shadow-inner"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-[#5c5549] block mb-1">Era</label>
+                  <input
+                    type="text"
+                    value={formData.era}
+                    onChange={(e) => setFormData({ ...formData, era: e.target.value })}
+                    className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] focus:outline-none focus:border-[#c05c3b] shadow-inner"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#5c5549] block mb-1">Member (Idol)</label>
+                  <input
+                    type="text"
+                    value={formData.member}
+                    onChange={(e) => setFormData({ ...formData, member: e.target.value })}
+                    className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] focus:outline-none focus:border-[#c05c3b] shadow-inner"
+                  />
+                </div>
               </div>
 
               {/* Single Currency Selector */}
@@ -266,20 +316,39 @@ export default function EventDashboard({
                 )}
               </div>
 
-              <div>
-                <label className="text-[11px] font-bold text-[#5c5549] block mb-1">
-                  Benefit Threshold (in Local {formData.currencyCode})
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${formData.hasBenefits ? 'bg-[#c05c3b] border-[#c05c3b] text-white shadow-sm' : 'bg-white border-[#ded5c2] group-hover:border-[#c05c3b]'}`}>
+                    {formData.hasBenefits && <Check className="w-3.5 h-3.5" />}
+                  </div>
+                  <span className="text-xs font-bold text-[#5c5549] select-none">
+                    Event offers store benefits (e.g. photocards per amount spent)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={formData.hasBenefits}
+                    onChange={(e) => setFormData({ ...formData, hasBenefits: e.target.checked })}
+                    className="hidden"
+                  />
                 </label>
-                <input
-                  type="number"
-                  step="any"
-                  value={formData.benefitThreshold}
-                  onChange={(e) => setFormData({ ...formData, benefitThreshold: e.target.value })}
-                  required
-                  placeholder="e.g. 50000"
-                  className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] font-mono focus:outline-none focus:border-[#c05c3b] shadow-inner"
-                />
               </div>
+
+              {formData.hasBenefits && (
+                <div>
+                  <label className="text-[11px] font-bold text-[#5c5549] block mb-1">
+                    Benefit Threshold (in Local {formData.currencyCode})
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formData.benefitThreshold}
+                    onChange={(e) => setFormData({ ...formData, benefitThreshold: e.target.value })}
+                    required
+                    placeholder="e.g. 50000"
+                    className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] font-mono focus:outline-none focus:border-[#c05c3b] shadow-inner"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -317,7 +386,7 @@ export default function EventDashboard({
                   </h4>
                 </div>
                 <p className="text-[11px] text-[#716a5d] truncate">
-                  1 {evt.currencyCode || 'Local'} = {evt.exchangeRate} SGD • Threshold: {formatCurrency(evt.benefitThreshold, evt.currencyCode)}
+                  1 {evt.currencyCode || 'Local'} = {evt.exchangeRate} SGD • Threshold: {evt.benefitThreshold > 0 ? formatCurrency(evt.benefitThreshold, evt.currencyCode) : 'None'}
                 </p>
               </div>
               <div className="shrink-0">
@@ -366,6 +435,27 @@ export default function EventDashboard({
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-[#5c5549] block mb-1">Era</label>
+                  <input
+                    type="text"
+                    value={formData.era}
+                    onChange={(e) => setFormData({ ...formData, era: e.target.value })}
+                    className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] focus:outline-none focus:border-[#c05c3b] shadow-inner"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#5c5549] block mb-1">Member (Idol)</label>
+                  <input
+                    type="text"
+                    value={formData.member}
+                    onChange={(e) => setFormData({ ...formData, member: e.target.value })}
+                    className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] focus:outline-none focus:border-[#c05c3b] shadow-inner"
+                  />
+                </div>
+              </div>
+
               {/* Single Currency Selector */}
               <div>
                 <label className="text-xs font-bold text-[#5c5549] block mb-1">Select Local Currency</label>
@@ -411,20 +501,39 @@ export default function EventDashboard({
                 )}
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-[#5c5549] block mb-1">
-                  Benefit Threshold (in Local {formData.currencyCode})
+              <div className="pt-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition ${formData.hasBenefits ? 'bg-[#c05c3b] border-[#c05c3b] text-white shadow-sm' : 'bg-white border-[#ded5c2] group-hover:border-[#c05c3b]'}`}>
+                    {formData.hasBenefits && <Check className="w-3.5 h-3.5" />}
+                  </div>
+                  <span className="text-xs font-bold text-[#5c5549] select-none">
+                    Event offers store benefits (e.g. photocards per amount spent)
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={formData.hasBenefits}
+                    onChange={(e) => setFormData({ ...formData, hasBenefits: e.target.checked })}
+                    className="hidden"
+                  />
                 </label>
-                <input
-                  type="number"
-                  step="any"
-                  required
-                  placeholder="e.g. 50000"
-                  value={formData.benefitThreshold}
-                  onChange={(e) => setFormData({ ...formData, benefitThreshold: e.target.value })}
-                  className="w-full bg-[#fcfaf6] border border-[#ded5c2] rounded-xl px-3.5 py-2.5 text-sm text-[#23201c] font-mono focus:outline-none focus:border-[#c05c3b] shadow-inner"
-                />
               </div>
+
+              {formData.hasBenefits && (
+                <div>
+                  <label className="text-xs font-bold text-[#5c5549] block mb-1">
+                    Benefit Threshold (in Local {formData.currencyCode})
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    required
+                    placeholder="e.g. 50000"
+                    value={formData.benefitThreshold}
+                    onChange={(e) => setFormData({ ...formData, benefitThreshold: e.target.value })}
+                    className="w-full bg-[#fcfaf6] border border-[#ded5c2] rounded-xl px-3.5 py-2.5 text-sm text-[#23201c] font-mono focus:outline-none focus:border-[#c05c3b] shadow-inner"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"

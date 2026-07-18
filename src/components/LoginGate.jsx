@@ -115,10 +115,7 @@ export default function LoginGate({ children }) {
           </form>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-[11px] text-[#a89f91] mt-5">
-          opxonly · Private Tool
-        </p>
+
       </div>
 
       <style>{`

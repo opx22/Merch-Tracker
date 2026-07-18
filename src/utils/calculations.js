@@ -82,9 +82,10 @@ export const calculateEventSummary = (event, orders = []) => {
     let pcEligibleLocalSpend = 0;
     let totalItemsCount = 0;
 
-    Object.entries(order.items || {}).forEach(([itemId, qty]) => {
+    Object.entries(order.items || {}).forEach(([compositeKey, qty]) => {
       const quantity = Number(qty || 0);
       if (quantity > 0) {
+        const [itemId] = compositeKey.split('__');
         const item = itemMap.get(itemId);
         if (item) {
           const itemTotalLocal = Number(item.price || 0) * quantity;
@@ -97,7 +98,10 @@ export const calculateEventSummary = (event, orders = []) => {
       }
     });
 
-    const orderSgdSpend = convertToSGD(orderLocalSpend, rate);
+    const orderSgdSpend =
+      order.billedAmountSgd !== undefined && order.billedAmountSgd !== null && order.billedAmountSgd !== ''
+        ? Number(order.billedAmountSgd)
+        : convertToSGD(orderLocalSpend, rate);
     const pcEligibleSgdSpend = convertToSGD(pcEligibleLocalSpend, rate);
 
     totalEventLocalSpend += orderLocalSpend;
@@ -144,24 +148,29 @@ export const calculateEventSummary = (event, orders = []) => {
 
   const catalogAggregation = {};
   processedOrders.forEach((order) => {
-    Object.entries(order.items || {}).forEach(([itemId, qty]) => {
+    Object.entries(order.items || {}).forEach(([compositeKey, qty]) => {
       const quantity = Number(qty || 0);
       if (quantity > 0) {
+        const [itemId, sizeStr] = compositeKey.split('__');
         const item = itemMap.get(itemId);
         if (item) {
-          if (!catalogAggregation[itemId]) {
-            catalogAggregation[itemId] = {
-              id: itemId,
+          const itemSize = (sizeStr !== undefined ? sizeStr : (order.itemSizes?.[itemId] || item.size || '')).trim();
+          const key = itemSize ? `${itemId}__${itemSize}` : itemId;
+          if (!catalogAggregation[key]) {
+            catalogAggregation[key] = {
+              id: key,
+              itemId: itemId,
               name: item.name || 'Unknown Item',
+              size: itemSize,
               price: Number(item.price || 0),
               qty: 0,
               totalLocal: 0,
               totalSgd: 0,
             };
           }
-          catalogAggregation[itemId].qty += quantity;
-          catalogAggregation[itemId].totalLocal += Number(item.price || 0) * quantity;
-          catalogAggregation[itemId].totalSgd = convertToSGD(catalogAggregation[itemId].totalLocal, rate);
+          catalogAggregation[key].qty += quantity;
+          catalogAggregation[key].totalLocal += Number(item.price || 0) * quantity;
+          catalogAggregation[key].totalSgd = convertToSGD(catalogAggregation[key].totalLocal, rate);
         }
       }
     });

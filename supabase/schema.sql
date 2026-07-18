@@ -5,13 +5,19 @@
 -- group orders (GOs), event catalogs, multi-currency pricing, and line items.
 -- ==============================================================================
 
--- Drop existing views & tables in reverse dependency order for clean recreate
-DROP VIEW IF EXISTS v_order_item_details CASCADE;
-DROP VIEW IF EXISTS v_event_item_totals CASCADE;
-DROP TABLE IF EXISTS order_items CASCADE;
-DROP TABLE IF EXISTS orders CASCADE;
-DROP TABLE IF EXISTS catalog_items CASCADE;
-DROP TABLE IF EXISTS events CASCADE;
+-- ==============================================================================
+-- Non-Destructive Migration Queries (Run in Supabase SQL Editor for Existing DBs)
+-- ==============================================================================
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS billed_amount_sgd NUMERIC(14, 2) NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS activity_type TEXT DEFAULT 'go';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS item_description TEXT NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS era TEXT NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS member TEXT NULL;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS era TEXT NULL;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS member TEXT NULL;
+-- Drop existing constraints that might block new statuses or order types
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_type_check;
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -44,6 +50,7 @@ COMMENT ON TABLE events IS 'Concert tours, pop-ups, and fan meeting events being
 COMMENT ON COLUMN events.exchange_rate IS 'Exchange rate to base currency (e.g., 1 KRW = 0.00098 SGD).';
 COMMENT ON COLUMN events.benefit_threshold IS 'Amount required in event currency to earn 1 store benefit (e.g. photocard).';
 
+DROP TRIGGER IF EXISTS trg_events_updated_at ON events;
 CREATE TRIGGER trg_events_updated_at
     BEFORE UPDATE ON events
     FOR EACH ROW
@@ -79,12 +86,13 @@ CREATE TABLE IF NOT EXISTS orders (
     buyer TEXT NOT NULL,
     seller TEXT NOT NULL,
     is_my_order BOOLEAN NOT NULL DEFAULT FALSE,
-    order_type TEXT NOT NULL CHECK (order_type IN ('host', 'placing', 'taking')),
-    status TEXT NOT NULL CHECK (status IN ('unpaid', 'paid', 'ordered', 'shipped', 'completed', 'cancelled')),
+    order_type TEXT NOT NULL,
+    status TEXT NOT NULL,
     order_date DATE NULL,
     payment_date DATE NULL,
     collection_date DATE NULL,
     comment TEXT NULL,
+    billed_amount_sgd NUMERIC(14, 2) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -97,6 +105,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_event_id ON orders(event_id);
 CREATE INDEX IF NOT EXISTS idx_orders_person_name ON orders(person_name);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 
+DROP TRIGGER IF EXISTS trg_orders_updated_at ON orders;
 CREATE TRIGGER trg_orders_updated_at
     BEFORE UPDATE ON orders
     FOR EACH ROW
@@ -110,8 +119,9 @@ CREATE TABLE IF NOT EXISTS order_items (
     order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     catalog_item_id TEXT NOT NULL REFERENCES catalog_items(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_order_catalog_item UNIQUE (order_id, catalog_item_id)
+    size_variant TEXT NULL,
+    type TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 COMMENT ON TABLE order_items IS 'Normalized line items mapping catalog merchandise to orders.';
@@ -176,22 +186,30 @@ ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 -- Note: For initial development and seamless migration, we allow public read/write access.
 -- When deploying to production with Supabase Auth, replace these with auth.uid() policies.
 
+DROP POLICY IF EXISTS "Allow public read access on events" ON events;
 CREATE POLICY "Allow public read access on events"
     ON events FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public write access on events" ON events;
 CREATE POLICY "Allow public write access on events"
     ON events FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow public read access on catalog_items" ON catalog_items;
 CREATE POLICY "Allow public read access on catalog_items"
     ON catalog_items FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public write access on catalog_items" ON catalog_items;
 CREATE POLICY "Allow public write access on catalog_items"
     ON catalog_items FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow public read access on orders" ON orders;
 CREATE POLICY "Allow public read access on orders"
     ON orders FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public write access on orders" ON orders;
 CREATE POLICY "Allow public write access on orders"
     ON orders FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow public read access on order_items" ON order_items;
 CREATE POLICY "Allow public read access on order_items"
     ON order_items FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow public write access on order_items" ON order_items;
 CREATE POLICY "Allow public write access on order_items"
     ON order_items FOR ALL USING (true) WITH CHECK (true);

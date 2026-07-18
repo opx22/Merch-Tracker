@@ -70,8 +70,8 @@ export default function Header({
       {activeEvent && (
         <div className="max-w-md mx-auto mt-2.5 flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#f5efe4] border border-[#e8dfce] text-[11px] text-[#5c5549] shadow-inner">
           <span className="truncate flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
-            <span className="font-bold text-[#2d2822]">Rule:</span> 1 Photocard per {formatCurrency(activeEvent.benefitThreshold, activeEvent.currencyCode)} spent
+            <span className={`w-1.5 h-1.5 rounded-full ${activeEvent.benefitThreshold > 0 ? 'bg-[#10b981] shadow-[0_0_8px_#10b981]' : 'bg-[#a89f91]'}`} />
+            <span className="font-bold text-[#2d2822]">Rule:</span> {activeEvent.benefitThreshold > 0 ? `1 Photocard per ${formatCurrency(activeEvent.benefitThreshold, activeEvent.currencyCode)} spent` : 'No Store Benefits (Threshold: 0)'}
           </span>
           <button
             onClick={() => setActiveTab('events')}

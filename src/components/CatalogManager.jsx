@@ -153,6 +153,7 @@ export default function CatalogManager({ activeEvent, onUpdateCatalog }) {
                       className="w-full bg-white border border-[#ded5c2] rounded-xl px-3 py-2 text-sm text-[#23201c] focus:outline-none focus:border-[#c05c3b] shadow-inner"
                     />
                   </div>
+
                   <div className="flex items-center gap-2">
                     <div className="flex-1 relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8273] text-[10px] font-mono">
@@ -279,12 +280,14 @@ export default function CatalogManager({ activeEvent, onUpdateCatalog }) {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Trading Card Set (Random 4pcs)"
+                  placeholder="e.g. Zip-Up Hoodie, T-Shirt..."
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full bg-[#fcfaf6] border border-[#ded5c2] rounded-xl px-3.5 py-2.5 text-sm text-[#23201c] focus:outline-none focus:border-[#c05c3b] shadow-inner"
                 />
               </div>
+
+
 
               <div>
                 <label className="text-xs font-bold text-[#5c5549] block mb-1">Price in {currCode}</label>

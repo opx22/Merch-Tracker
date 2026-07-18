@@ -25,7 +25,13 @@ export default function App() {
   const [events, setEvents] = useState(() => {
     if (typeof window === 'undefined') return [];
     const saved = localStorage.getItem('merch_tracker_events_v1');
-    return saved ? JSON.parse(saved) : [];
+    const list = saved ? JSON.parse(saved) : [];
+    list.forEach((e) => {
+      if (e.id === 'standalone_activities') {
+        e.name = '📦 Standalone Purchases & Sales';
+      }
+    });
+    return list.filter((e) => e.id !== 'standalone_activities' && e.id !== 'standalone');
   });
 
   const [ordersMap, setOrdersMap] = useState(() => {
@@ -34,25 +40,22 @@ export default function App() {
     const rawMap = saved ? JSON.parse(saved) : {};
     const cleanMap = {};
     Object.keys(rawMap).forEach((eventId) => {
+      if (eventId === 'standalone') return; // skip old standalone
       cleanMap[eventId] = (rawMap[eventId] || []).map((ord) => {
         const isHost = ord.isMyOrder || ord.orderType === 'host';
         const role = ord.orderType || (isHost ? 'host' : 'taking');
         const cleanPerson = isHost ? 'Me' : sanitizeName(ord.personName);
-        let buyer = cleanPerson;
-        let seller = 'Me';
-        if (role === 'placing') {
-          buyer = 'Me';
-          seller = cleanPerson;
-        } else if (role === 'host') {
-          buyer = 'Me';
-          seller = sanitizeName(ord.seller) || 'Official Store';
-        }
         return {
           ...ord,
           personName: cleanPerson,
-          buyer,
-          seller,
+          buyer: ord.buyer,
+          seller: ord.seller,
           orderType: role,
+          activityType: ord.activityType || 'go',
+          itemDescription: ord.itemDescription || '',
+          era: ord.era || '',
+          member: ord.member || '',
+          items: ord.items || {},
         };
       });
     });
@@ -82,13 +85,15 @@ export default function App() {
         setIsSyncing(false);
         setIsInitializedFromDb(true);
         if (fetchedEvents && fetchedEvents.length > 0) {
-          setEvents(fetchedEvents);
+          const list = [...fetchedEvents];
+          setEvents(list.filter((e) => e.id !== 'standalone_activities' && e.id !== 'standalone'));
           setOrdersMap(fetchedOrdersMap);
-          setActiveEventId(fetchedEvents[0].id);
+          const firstValidEvent = list.find((e) => e.id !== 'standalone_activities' && e.id !== 'standalone');
+          setActiveEventId(firstValidEvent?.id || '');
         } else {
-          // If Supabase database is completely empty (e.g. seeded data was wiped), start clean
+          // If Supabase database is empty of events, but might have standalone orders
           setEvents([]);
-          setOrdersMap({});
+          setOrdersMap(fetchedOrdersMap || {});
           setActiveEventId('');
           setActiveTab('events');
         }
@@ -125,12 +130,15 @@ export default function App() {
         .then(() => setIsSyncing(false))
         .catch((err) => {
           console.error('Supabase live sync failed:', err);
+          alert('Failed to sync to database: ' + err.message);
           setIsSyncing(false);
         });
-    }, 800);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [events, ordersMap, isInitializedFromDb, isSupabaseConnected]);
+
+
 
   const activeEvent = useMemo(() => {
     return events.find((e) => e.id === activeEventId) || events[0];
@@ -157,7 +165,7 @@ export default function App() {
           id: `ord-init-${Date.now()}`,
           personName: 'Me',
           buyer: 'Me',
-          seller: 'Official Venue Store',
+          seller: 'Me',
           isMyOrder: true,
           orderType: 'host',
           items: {},
@@ -229,7 +237,10 @@ export default function App() {
         events={events}
         activeEventId={activeEvent?.id || ''}
         onSelectEvent={setActiveEventId}
-        onOpenNewEventModal={() => setShowNewEventModalFromHeader(true)}
+        onOpenNewEventModal={() => {
+          setActiveTab('events');
+          setShowNewEventModalFromHeader(true);
+        }}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isSupabaseConnected={isSupabaseConnected}
@@ -245,6 +256,7 @@ export default function App() {
             summaryData={summaryData}
             onUpdateOrders={handleUpdateOrders}
             onSetMyOrder={handleSetMyOrder}
+            onUpdateCatalog={handleUpdateCatalog}
           />
         )}
 
@@ -275,6 +287,8 @@ export default function App() {
             onCreateEvent={handleCreateEvent}
             onUpdateEvent={handleUpdateEvent}
             onDeleteEvent={handleDeleteEvent}
+            showCreateModalFromHeader={showNewEventModalFromHeader}
+            onCloseCreateModalFromHeader={() => setShowNewEventModalFromHeader(false)}
           />
         )}
       </main>
